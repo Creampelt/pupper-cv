@@ -5,19 +5,21 @@ import numpy as np
 
 
 def get_serial_port():
-  print("Looking for Teensy in Serial device list...")
-  for device in list_ports.grep(".*"):
-    VID = device.hwid[12:16]
-    PID = device.hwid[17:21]
-    print(f"VID is {VID} and PID is {PID}")
-    print(f"Manufacturer: {device.manufacturer}")
-    print(f"Device.device: {device.device}")
-    if VID == "16C0" and PID == "0483":
-      print(f"Teensy found on {device.device}")
-      return device.device
-    
-  print("\n", "-"*100, "\n No Teensy device detected connected to the computer when 'run_on_robot' is enabled, shutting down\n", "-"*100, "\n")
-  sys.exit(1)
+    print("Looking for Teensy in Serial device list...")
+    for device in list_ports.grep(".*"):
+        VID = device.hwid[12:16]
+        PID = device.hwid[17:21]
+        print(f"VID is {VID} and PID is {PID}")
+        print(f"Manufacturer: {device.manufacturer}")
+        print(f"Device.device: {device.device}")
+        if VID == "16C0" and PID == "0483":
+            print(f"Teensy found on {device.device}")
+            return device.device
+
+    print("\n", "-" * 100,
+          "\n No Teensy device detected connected to the computer when 'run_on_robot' is enabled, shutting down\n",
+          "-" * 100, "\n")
+    sys.exit(1)
 
 
 def blocking_move(hardware_interface,
@@ -28,28 +30,28 @@ def blocking_move(hardware_interface,
                   kd=1.0,
                   max_current=3.0,
                   leg_index=3):
-  """
+    """
   Defaults to controller back left leg
   """
-  last_command = time.time()
-  time_start = time.time()
-  hardware_interface.set_joint_space_parameters(kp=kp,
-                                                kd=kd,
-                                                max_current=max_current)
-  hardware_interface.read_incoming_data()
-  initial_position = np.array(hardware_interface.robot_state.position[6:9])
-  while (1):
-    time.sleep(dt)
-    now = time.time()
-    last_command = now
+    last_command = time.time()
+    time_start = time.time()
+    hardware_interface.set_joint_space_parameters(kp=kp,
+                                                  kd=kd,
+                                                  max_current=max_current)
+    hardware_interface.read_incoming_data()
+    initial_position = np.array(hardware_interface.robot_state.position[6:9])
+    while True:
+        time.sleep(dt)
+        now = time.time()
+        last_command = now
 
-    progress = (now - time_start) / traverse_time
-    print(f"Move progress: {progress:0.2f}")
-    next_position = progress * goal + (1 - progress) * initial_position
+        progress = (now - time_start) / traverse_time
+        print(f"Move progress: {progress:0.2f}")
+        next_position = progress * goal + (1 - progress) * initial_position
 
-    full_actions = np.zeros([3, 4])
-    full_actions[:, leg_index] = np.reshape(next_position, 3)
-    hardware_interface.set_actuator_postions(np.array(full_actions))
+        full_actions = np.zeros([3, 4])
+        full_actions[:, leg_index] = np.reshape(next_position, 3)
+        hardware_interface.set_actuator_postions(np.array(full_actions))
 
-    if now - time_start > traverse_time:
-      return
+        if now - time_start > traverse_time:
+            return
