@@ -16,7 +16,7 @@
 
 Install for development:
 
-  pip intall -e .
+  pip install -e .
 """
 
 from setuptools import find_packages

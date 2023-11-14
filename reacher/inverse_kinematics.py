@@ -4,11 +4,12 @@ import copy
 from reacher import forward_kinematics
 
 HIP_OFFSET = 0.0335
-UPPER_LEG_OFFSET = 0.10 # length of link 1
-LOWER_LEG_OFFSET = 0.13 # length of link 2
-TOLERANCE = 0.01 # tolerance for inverse kinematics
-PERTURBATION = 0.0001 # perturbation for finite difference method
+UPPER_LEG_OFFSET = 0.10  # length of link 1
+LOWER_LEG_OFFSET = 0.13  # length of link 2
+TOLERANCE = 0.01  # tolerance for inverse kinematics
+PERTURBATION = 0.0001  # perturbation for finite difference method
 MAX_ITERATIONS = 10
+
 
 def ik_cost(end_effector_pos, guess):
     """Calculates the inverse kinematics cost.
@@ -34,6 +35,7 @@ def ik_cost(end_effector_pos, guess):
 
     return cost
 
+
 def calculate_jacobian_FD(joint_angles, delta):
     """
     Calculate the Jacobian matrix using finite differences.
@@ -55,6 +57,7 @@ def calculate_jacobian_FD(joint_angles, delta):
     # Add your solution here.
 
     return J
+
 
 def calculate_inverse_kinematics(end_effector_pos, guess):
     """
