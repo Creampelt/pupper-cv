@@ -28,12 +28,8 @@ def ik_cost(end_effector_pos, guess):
         float: The Euclidean distance between end_effector_pos and the calculated end-effector
         position based on the guess.
     """
-    # Initialize cost to zero
-    cost = 0.0
-
-    # Add your solution here.
-
-    return cost
+    end_effector_guess = forward_kinematics.fk_foot(guess)[0:3, 3]
+    return np.linalg.norm(end_effector_pos - end_effector_guess)
 
 
 def calculate_jacobian_FD(joint_angles, delta):
@@ -53,9 +49,13 @@ def calculate_jacobian_FD(joint_angles, delta):
 
     # Initialize Jacobian to zero
     J = np.zeros((3, 3))
-
-    # Add your solution here.
-
+    actual_pose = forward_kinematics.fk_foot(joint_angles)
+    for i in range(0, 3):
+        adjusted_angles = np.array(joint_angles)
+        adjusted_angles[i] += delta
+        pose = forward_kinematics.fk_foot(adjusted_angles) - actual_pose
+        for j in range(0, 3):
+            J[j][i] = pose[j, 3] / delta
     return J
 
 
@@ -74,21 +74,16 @@ def calculate_inverse_kinematics(end_effector_pos, guess):
     Returns:
         numpy.ndarray: The refined joint angles that achieve the desired end-effector position.
     """
-
     # Initialize previous cost to infinity
     previous_cost = np.inf
-    # Initialize the current cost to 0.0
-    cost = 0.0
-
     for iters in range(MAX_ITERATIONS):
-        # Calculate the Jacobian matrix using finite differences
-
-        # Calculate the residual
-
-        # Compute the step to update the joint angles using the Moore-Penrose pseudoinverse using numpy.linalg.pinv
+        J = calculate_jacobian_FD(guess, PERTURBATION)
+        e = end_effector_pos - forward_kinematics.fk_foot(guess)[0:3, 3]
+        J_pinv = np.linalg.pinv(J)
 
         # Take a full Newton step to update the guess for joint angles
-        # cost = # Add your solution here.
+        guess += J_pinv @ e
+        cost = ik_cost(end_effector_pos, guess)
         # Calculate the cost based on the updated guess
         if abs(previous_cost - cost) < TOLERANCE:
             break
