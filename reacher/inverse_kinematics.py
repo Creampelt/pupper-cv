@@ -1,6 +1,4 @@
-import math
 import numpy as np
-import copy
 from reacher import forward_kinematics
 
 HIP_OFFSET = 0.0335
@@ -9,6 +7,10 @@ LOWER_LEG_OFFSET = 0.13  # length of link 2
 TOLERANCE = 0.01  # tolerance for inverse kinematics
 PERTURBATION = 0.0001  # perturbation for finite difference method
 MAX_ITERATIONS = 10
+
+
+def get_end_effector(joint_angles):
+    return forward_kinematics.fk_foot(joint_angles)[0:3, 3]
 
 
 def ik_cost(end_effector_pos, guess):
@@ -28,7 +30,7 @@ def ik_cost(end_effector_pos, guess):
         float: The Euclidean distance between end_effector_pos and the calculated end-effector
         position based on the guess.
     """
-    end_effector_guess = forward_kinematics.fk_foot(guess)[0:3, 3]
+    end_effector_guess = get_end_effector(guess)
     return np.linalg.norm(end_effector_pos - end_effector_guess)
 
 
@@ -49,13 +51,13 @@ def calculate_jacobian_FD(joint_angles, delta):
 
     # Initialize Jacobian to zero
     J = np.zeros((3, 3))
-    actual_pose = forward_kinematics.fk_foot(joint_angles)
+    actual_pose = get_end_effector(joint_angles)
     for i in range(0, 3):
         adjusted_angles = np.array(joint_angles)
         adjusted_angles[i] += delta
-        pose = forward_kinematics.fk_foot(adjusted_angles) - actual_pose
+        pose = get_end_effector(adjusted_angles) - actual_pose
         for j in range(0, 3):
-            J[j][i] = pose[j, 3] / delta
+            J[j][i] = pose[j] / delta
     return J
 
 
@@ -78,7 +80,7 @@ def calculate_inverse_kinematics(end_effector_pos, guess):
     previous_cost = np.inf
     for iters in range(MAX_ITERATIONS):
         J = calculate_jacobian_FD(guess, PERTURBATION)
-        e = end_effector_pos - forward_kinematics.fk_foot(guess)[0:3, 3]
+        e = end_effector_pos - get_end_effector(guess)
         J_pinv = np.linalg.pinv(J)
 
         # Take a full Newton step to update the guess for joint angles
