@@ -116,6 +116,7 @@ def main(argv):
         cap.set(10, 150)
         ret, camera_mat, _, rotation_vecs, translation_vecs = computer_vision.calibrate_camera(cap)
 
+    xyz = None
     # Main loop
     while True:
 
@@ -140,7 +141,6 @@ def main(argv):
                 slider_values = np.array([p.readUserDebugParameter(id) for id in param_ids])
             except:
                 pass
-            xyz = None
             if FLAGS.ik:
                 xyz = slider_values
                 p.resetBasePositionAndOrientation(target_sphere_id, posObj=xyz, ornObj=[0, 0, 0, 1])
@@ -150,7 +150,8 @@ def main(argv):
                     cv_points.append(cv_xyz)
                     if len(cv_points) > 10:
                         cv_points = cv_points[:-10]
-                    xyz = np.median(cv_points, axis=0)
+                    if xyz is None or np.linalg.norm(np.median(cv_points, axis=0) - xyz) <= 0.05:
+                        xyz = np.median(cv_points, axis=0)
             else:
                 joint_angles = slider_values
                 enable = True
@@ -161,15 +162,17 @@ def main(argv):
                 if ret is not None:
                     enable = True
                     # Wraps angles between -pi, pi
-                    joint_angles = np.arctan2(np.sin(ret), np.cos(ret))
+                    new_angles = np.arctan2(np.sin(ret), np.cos(ret))
 
                     # Double check that the angles are a correct solution before sending anything to the real robot
-                    pos = forward_kinematics.fk_foot(joint_angles[:3])[:3, 3]
+                    pos = forward_kinematics.fk_foot(new_angles[:3])[:3, 3]
                     if np.linalg.norm(np.asarray(pos) - xyz) > 0.05:
                         joint_angles = np.zeros_like(joint_angles)
                         if flags.FLAGS.set_joint_angles:
                             joint_angles = np.array(flags.FLAGS.set_joint_angles, dtype=np.float32)
                         print("Prevented operation on real robot as inverse kinematics solution was not correct")
+                    else:
+                        joint_angles = new_angles
 
             # If real-to-sim, update the joint angles based on the actual robot joint angles
             if real_to_sim:

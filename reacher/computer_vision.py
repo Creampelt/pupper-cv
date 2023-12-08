@@ -3,15 +3,16 @@ import cv2 as cv
 
 # Distance between robot and inner left corner of checkerboard
 # NOTE: We are assuming robot angle is 0, since measuring it would be too difficult
-ROBOT_X = -3.17
+ROBOT_X = -5.0
 ROBOT_Y = 8.5
-ROBOT_Z = -11.43
+ROBOT_Z = -8.5
 
 # For calibration
 CHECKER_SIZE = 2.4  # checker size in cm
-CHECKERBOARD_HEIGHT = 46.99  # height of top of bottom row of checkerboard (i.e. lowest dot) from ground in cm
+CHECKERBOARD_HEIGHT = 46.0  # height of top of bottom row of checkerboard (i.e. lowest dot) from ground in cm
 CHECKER_WIDTH = 9  # number of columns in checkerboard
 CHECKER_HEIGHT = 7  # number of rows in checkerboard
+
 DILATION_ITERATIONS = 3  # number of iterations for image dilation (increase for less precise but fewer contour boxes
 
 
@@ -37,7 +38,7 @@ def calculate_world_coords(u, v, camera_mat, rotation, translation):
 
 
 def get_valid_contours(contours):
-    return list(filter(lambda cnt: cnt[2] < 20 and cnt[3] < 20, contours))
+    return list(filter(lambda cnt: 20 < cnt[2] < 70 and 20 < cnt[3] < 70, contours))
 
 
 def find_nearest_to_center(contours, img_shape):
