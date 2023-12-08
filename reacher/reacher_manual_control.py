@@ -140,24 +140,23 @@ def main(argv):
                 slider_values = np.array([p.readUserDebugParameter(id) for id in param_ids])
             except:
                 pass
-            if FLAGS.ik or FLAGS.cv:
-                # Ignore slider values for cv
-                if FLAGS.ik:
-                    xyz = slider_values
+            xyz = None
+            if FLAGS.ik:
+                xyz = slider_values
                 p.resetBasePositionAndOrientation(target_sphere_id, posObj=xyz, ornObj=[0, 0, 0, 1])
+            elif FLAGS.cv:
+                cv_xyz = computer_vision.calculate_cv_ik_xyz(cap, camera_mat, rotation_vecs, translation_vecs)
+                if cv_xyz is not None:
+                    cv_points.append(cv_xyz)
+                    if len(cv_points) > 10:
+                        cv_points = cv_points[:-10]
+                    xyz = np.median(cv_points, axis=0)
             else:
                 joint_angles = slider_values
                 enable = True
 
             # If IK is enabled, update joint angles based off of goal XYZ position
-            if FLAGS.ik or FLAGS.cv:
-                if FLAGS.cv:
-                    cv_xyz = computer_vision.calculate_cv_ik_xyz(cap, camera_mat, rotation_vecs, translation_vecs)
-                    if cv_xyz is not None:
-                        cv_points.append(cv_xyz)
-                        if len(cv_points) > 10:
-                            cv_points = cv_points[:-10]
-                        xyz = np.median(cv_points, axis=0)
+            if FLAGS.ik or FLAGS.cv and xyz is not None:
                 ret = inverse_kinematics.calculate_inverse_kinematics(xyz, joint_angles[:3])
                 if ret is not None:
                     enable = True
