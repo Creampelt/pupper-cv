@@ -2,6 +2,7 @@ from reacher import forward_kinematics
 from reacher import inverse_kinematics
 from reacher import reacher_robot_utils
 from reacher import reacher_sim_utils
+from reacher import computer_vision
 import pybullet as p
 import time
 import contextlib
@@ -9,10 +10,11 @@ import numpy as np
 from absl import app
 from absl import flags
 from pupper_hardware_interface import interface
-from sys import platform
+import cv2 as cv
 
 flags.DEFINE_bool("run_on_robot", False, "Whether to run on robot or in simulation.")
 flags.DEFINE_bool("ik", False, "Whether to control arms through cartesian coordinates(IK) or joint angles")
+flags.DEFINE_bool("cv", False, "Whether to execute computer vision to follow red dot")
 flags.DEFINE_list("set_joint_angles", [], "List of joint angles to set at initialization.")
 FLAGS = flags.FLAGS
 
@@ -25,6 +27,10 @@ UPDATE_DT = 0.01  # seconds
 HIP_OFFSET = 0.0335  # meters
 L1 = 0.08  # meters
 L2 = 0.11  # meters
+
+# Camera params
+FRAME_WIDTH = 640
+FRAME_HEIGHT = 480
 
 
 def main(argv):
@@ -97,10 +103,23 @@ def main(argv):
 
     print("\nRobot Status:\n")
 
+    cap = None
+    camera_mat = None
+    rotation_vecs = None
+    translation_vecs = None
+    cv_points = []
+    if FLAGS.cv:
+        # Start video feed and calibrate camera
+        cap = cv.VideoCapture(0)
+        cap.set(3, FRAME_WIDTH)
+        cap.set(4, FRAME_HEIGHT)
+        cap.set(10, 150)
+        ret, camera_mat, _, rotation_vecs, translation_vecs = computer_vision.calibrate_camera(cap)
+
     # Main loop
     while True:
 
-        # Whether or not to send commands to the real robot
+        # Whether to send commands to the real robot
         enable = False
 
         # If interfacing with the real robot, handle those communications now
@@ -121,15 +140,23 @@ def main(argv):
                 slider_values = np.array([p.readUserDebugParameter(id) for id in param_ids])
             except:
                 pass
-            if FLAGS.ik:
-                xyz = slider_values
+            if FLAGS.ik or FLAGS.cv:
+                if FLAGS.ik:
+                    xyz = slider_values
                 p.resetBasePositionAndOrientation(target_sphere_id, posObj=xyz, ornObj=[0, 0, 0, 1])
             else:
                 joint_angles = slider_values
                 enable = True
 
             # If IK is enabled, update joint angles based off of goal XYZ position
-            if FLAGS.ik:
+            if FLAGS.ik or FLAGS.cv:
+                if FLAGS.cv:
+                    cv_xyz = computer_vision.calculate_cv_ik_xyz(cap, camera_mat, rotation_vecs, translation_vecs)
+                    if cv_xyz is not None:
+                        cv_points.append(cv_xyz)
+                        if len(cv_points) > 10:
+                            cv_points = cv_points[:-10]
+                        xyz = np.median(cv_points, axis=0)
                 ret = inverse_kinematics.calculate_inverse_kinematics(xyz, joint_angles[:3])
                 if ret is not None:
                     enable = True

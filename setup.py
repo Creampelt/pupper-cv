@@ -44,6 +44,7 @@ setup(
         "gin-config",
         "scipy",
         "pyserial",
+        "opencv-python",
         "pupper_hardware_interface @ git+https://github.com/stanfordroboticsclub/Pupper-V2-Interface.git",
     ],
     classifiers=[
