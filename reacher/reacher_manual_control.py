@@ -156,7 +156,7 @@ def main(argv):
                 enable = True
 
             # If IK is enabled, update joint angles based off of goal XYZ position
-            if FLAGS.ik or FLAGS.cv and xyz is not None:
+            if (FLAGS.ik or FLAGS.cv) and xyz is not None:
                 ret = inverse_kinematics.calculate_inverse_kinematics(xyz, joint_angles[:3])
                 if ret is not None:
                     enable = True
