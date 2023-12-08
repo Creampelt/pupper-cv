@@ -140,9 +140,8 @@ def main(argv):
                 slider_values = np.array([p.readUserDebugParameter(id) for id in param_ids])
             except:
                 pass
-            if FLAGS.ik or FLAGS.cv:
-                if FLAGS.ik:
-                    xyz = slider_values
+            if FLAGS.ik:
+                xyz = slider_values
                 p.resetBasePositionAndOrientation(target_sphere_id, posObj=xyz, ornObj=[0, 0, 0, 1])
             else:
                 joint_angles = slider_values
